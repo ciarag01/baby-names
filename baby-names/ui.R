@@ -42,7 +42,7 @@ shinyUI(fluidPage(
                       ),
                       fluidRow(column = 12,
                                plotOutput("names_decade_f")
-                      ),
+                      )
                       
              ), 
              tabPanel("Top 10 names over time (Female)", icon = icon("chart-gantt"), 
@@ -81,7 +81,22 @@ shinyUI(fluidPage(
                       ),
                       fluidRow(column = 6, 
                                plotOutput("unique_plot"))
-             )
+             ), 
+             
+             tabPanel("Top names in each state: 1880 - 2017", icon = icon("cloud"), 
+                      fluidRow(column = 6,
+                          selectInput("state", "Select State", 
+                                      choices = unique(top_state$state_name)
+                          )
+                        ), 
+                        fluidRow(column = 12,
+                          plotOutput("word_cloud")
+                          )
+                      # ,
+                      #     fluidRow(column = 3,
+                      #     plotOutput("top_names_female")
+                      #   )
+                      )
+             ) 
   )
-)
 )

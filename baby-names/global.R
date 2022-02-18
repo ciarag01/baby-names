@@ -16,13 +16,14 @@ library(janitor)
 library(plotly)
 library(forcats)
 library(babynames)
+library(ggwordcloud)
 
 
 ##############################################.
 # LOAD DATA ----
 ##############################################.
 names <- babynames
-
+top_state <- readRDS("data/top_name_per_state.rds")
 
 
 ##############################################.
@@ -115,6 +116,23 @@ unique <- names %>%
 
 ggplot(unique, aes(x = year, y = n, colour = sex)) +
   geom_line() 
+
+
+# Top names by state
+top_state %<>%
+  select(-state_abb, -counter)
+
+al <- top_state %>% 
+  filter(state_name == "New York") %>% 
+  group_by(name, sex) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup()
+
+
+ggplot(al, aes(label = name, size = n, colour = sex)) +
+  geom_text_wordcloud() +
+  scale_size_area(max_size = 35) +
+  theme_minimal()
 
 # # Unisex Names
 # uni <- names %>% 

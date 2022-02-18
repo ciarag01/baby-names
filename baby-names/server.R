@@ -126,4 +126,43 @@ shinyServer(function(input, output) {
   
 })
   
+ names_by_state <- reactive ({
+    
+    top_state %>% 
+     filter(state_name == input$state) %>% 
+     group_by(name, sex) %>% 
+     summarise(n = sum(n)) %>% 
+     ungroup()
+  })
+  
+  # output$top_names_male <- renderPlot({
+  #   
+  #   ggplot(names_by_state() %>% filter(sex == "M"), 
+  #          aes(label = name, size = n, colour = sex)) +
+  #     geom_text_wordcloud() +
+  #     scale_size_area(max_size = 40) +
+  #     theme_minimal()
+  # 
+  # })
+  # 
+  # output$top_names_female <- renderPlot({
+  #   
+  #   ggplot(names_by_state() %>% filter(sex == "F"), 
+  #          aes(label = name, size = n, colour = sex)) +
+  #     geom_text_wordcloud() +
+  #     scale_size_area(max_size = 40) +
+  #     theme_minimal()
+  #   
+  # })
+ 
+ output$word_cloud <- renderPlot({
+
+   ggplot(names_by_state(),
+          aes(label = name, size = n, colour = sex)) +
+     geom_text_wordcloud() +
+     scale_size_area(max_size = 40) +
+     theme_minimal()
+
+ })
+  
 })
