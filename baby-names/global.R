@@ -17,13 +17,51 @@ library(plotly)
 library(forcats)
 library(babynames)
 library(ggwordcloud)
+library(maps)
+library(ggplot2)
+library(mapdata)
+library(stringr)
+library(maptools)
+library(rvest)  
 
 
 ##############################################.
 # LOAD DATA ----
 ##############################################.
 names <- babynames
-top_state <- readRDS("data/top_name_per_state.rds")
+
+# Top name in each year by sex and state
+top_state <- readRDS("baby-names/data/top_name_per_state.rds") %>% 
+  select(-state_abb, -counter)
+
+# State shapefile for map
+state <- map_data("state") %>% 
+  select(long, lat, region) 
+# 
+# %>% 
+#   group_by(region) %>% 
+#   mutate(centre_lat = weighted.mean(lat), 
+#          centre_long = weighted.mean(long)) %>% 
+#   ungroup()
+
+# Pull data for centre of each state from wikipedia
+URL <- "https://en.wikipedia.org/wiki/List_of_geographic_centers_of_the_United_States"
+
+temp <- URL %>% 
+  html %>%
+  html_nodes("table")
+
+state_centres <- html_table(temp[2][[1]]) %>% 
+  clean_names() %>% 
+  select(-location) %>% 
+  separate(coordinates, c("x1","x2", "x3", "x4"), sep = "([/(])") %>% 
+  select(-c(x1, x2, x4)) %>% 
+  separate(x3, c("centre_lat","centre_long"), sep = "([;])") %>% 
+  mutate(state_name_lower = str_to_lower(state_orfederal_district)) %>% 
+  select(-state_orfederal_district) %>% 
+  mutate(centre_lat = as.numeric(centre_lat), 
+         centre_long = as.numeric(substr(trimws(centre_long), 1, 
+                                          nchar(trimws(centre_long)) - 1)))
 
 
 ##############################################.
@@ -117,70 +155,27 @@ unique <- names %>%
 ggplot(unique, aes(x = year, y = n, colour = sex)) +
   geom_line() 
 
+# Top names by state - map
+map_data <- top_state %>% 
+  filter(year == 1993 & sex == "F") %>% 
+  group_by(name, year, state_name) %>% 
+  summarise() %>% 
+  ungroup() %>% 
+  mutate(state_name_lower = str_to_lower(state_name)) 
 
-# Top names by state
-top_state %<>%
-  select(-state_abb, -counter)
+state %<>%  
+  left_join(state_centres, by = c("region" = "state_name_lower")) %>% 
+  left_join(map_data, by = c("region" = "state_name_lower"))
 
-al <- top_state %>% 
-  filter(state_name == "New York") %>% 
-  group_by(name, sex) %>% 
-  summarise(n = sum(n)) %>% 
-  ungroup()
-
-
-ggplot(al, aes(label = name, size = n, colour = sex)) +
-  geom_text_wordcloud() +
-  scale_size_area(max_size = 35) +
-  theme_minimal()
-
-# # Unisex Names
-# uni <- names %>% 
-#   select(name, year, sex, n) %>% 
-#   pivot_wider(id_cols = name:year, names_from = sex, values_from = n) %>% 
-#   mutate(female = if_else(!(is.na(`F`)), 1, 0), 
-#          male = if_else(!(is.na(`M`)), 1, 0)) %>% 
-#   mutate(both = if_else(female == 1 & male == 1, 1, 0)) %>% 
-#     group_by(name) %>%
-#     mutate(first_year = min(year)) %>%
-#     ungroup() %>%
-#     arrange(name) %>% 
-#   mutate(female = if_else(both == 1, 0, female), 
-#          male = if_else(both == 1, 0, male)) %>% 
-#   group_by(name, first_year) %>% 
-#   summarise(female = sum(female), 
-#             male = sum(male), 
-#             both = sum(both)) %>% 
-#   ungroup()
+ggplot(data=state, aes(x=long, y=lat, fill= region, 
+                       label = name)) + 
+  geom_polygon(color = "white") + 
+  guides(fill=FALSE) + 
+  theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + 
+  ggtitle('U.S. Map with States') + 
+  coord_fixed(1.3) +
+ geom_text(aes(x = centre_long, y = centre_lat, label = name), 
+           size = 3)
 
 
-# First Appearance
-# first <- names %>% 
-#   group_by(name, sex) %>% 
-#   summarise(first_year = min(year)) %>% 
-#   ungroup() %>% 
-#   arrange(name)
-# 
-# top_50 <- names %>% 
-#   group_by(year, sex) %>% 
-#   mutate(rank = rank(prop)) %>% 
-#   ungroup() %>% 
-#   group_by(year, sex) %>% 
-#   filter(rank >= max(rank) - 19 & rank <= max(rank)) %>%
-#   ungroup() %>% 
-#   select(-rank) %>% 
-#   left_join(first, by = c("name", "sex")) %>% 
-#   group_by(name, sex, first_year) %>% 
-#   summarise(n = sum(n)) %>% 
-#   ungroup()
-# 
-# 
-# ggplot(top_50 %>% filter(sex == "F"), 
-#        aes(x = first_year, y = n, colour = name, label = name)) +
-#   geom_point(aes(label = name), show.legend = FALSE) 
-# 
-# +
-#   geom_text(aes(x = first_year, y =n, label = name, colour = name),
-#             size = 4,
-#             family = "JetBrains Mono", 
-#             show.legend = FALSE) 
