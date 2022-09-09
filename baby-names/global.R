@@ -1,5 +1,5 @@
 ##############################################.
-# GLOBAL ----
+# GLOBAL  ----
 ##############################################.
 
 ##############################################.
@@ -31,18 +31,12 @@ library(rvest)
 names <- babynames
 
 # Top name in each year by sex and state
-top_state <- readRDS("baby-names/data/top_name_per_state.rds") %>% 
+top_state <- readRDS("data/top_name_per_state.rds") %>% 
   select(-state_abb, -counter)
 
 # State shapefile for map
 state <- map_data("state") %>% 
   select(long, lat, region) 
-# 
-# %>% 
-#   group_by(region) %>% 
-#   mutate(centre_lat = weighted.mean(lat), 
-#          centre_long = weighted.mean(long)) %>% 
-#   ungroup()
 
 # Pull data for centre of each state from wikipedia
 URL <- "https://en.wikipedia.org/wiki/List_of_geographic_centers_of_the_United_States"
@@ -157,25 +151,16 @@ ggplot(unique, aes(x = year, y = n, colour = sex)) +
 
 # Top names by state - map
 map_data <- top_state %>% 
-  filter(year == 1993 & sex == "F") %>% 
-  group_by(name, year, state_name) %>% 
-  summarise() %>% 
+  group_by(name, year, sex, state_name) %>% 
+  summarise(tot = sum(n)) %>% 
   ungroup() %>% 
   mutate(state_name_lower = str_to_lower(state_name)) 
 
 state %<>%  
   left_join(state_centres, by = c("region" = "state_name_lower")) %>% 
-  left_join(map_data, by = c("region" = "state_name_lower"))
+  left_join(map_data, by = c("region" = "state_name_lower")) %>% 
+    arrange(year, state_name, sex) %>% 
+  filter(!is.na(year)) %>% 
+  filter(!is.na(sex))
 
-ggplot(data=state, aes(x=long, y=lat, fill= region, 
-                       label = name)) + 
-  geom_polygon(color = "white") + 
-  guides(fill=FALSE) + 
-  theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + 
-  ggtitle('U.S. Map with States') + 
-  coord_fixed(1.3) +
- geom_text(aes(x = centre_long, y = centre_lat, label = name), 
-           size = 3)
-
-
+check <- names %>% filter(name == "Rita")
