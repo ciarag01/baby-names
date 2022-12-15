@@ -83,20 +83,34 @@ shinyUI(fluidPage(
                                plotOutput("unique_plot"))
              ), 
              
-             tabPanel("Top names in each state: 1880 - 2017", icon = icon("cloud"), 
+             tabPanel("Top names in each state: 1910 - 2017", icon = icon("cloud"), 
                       fluidRow(column = 6,
-                          selectInput("state", "Select State", 
-                                      choices = unique(top_state$state_name)
+                               selectInput("state", "Select State", 
+                                           choices = unique(top_state$state_name)
+                               )
+                      ), 
+                      fluidRow(column = 12,
+                               plotOutput("word_cloud")
+                      )
+             ),
+             
+             tabPanel("Top names in each state (map): 1910 - 2017", 
+                      icon = icon("earth-americas"), 
+                      sidebarLayout(
+                        sidebarPanel(
+                          selectInput("map_year", "Select Year", 
+                                      choices = unique(state$year)
+                          ), 
+                          selectInput("map_sex", "Select Sex", 
+                                      choices = unique(state$sex)
                           )
                         ), 
-                        fluidRow(column = 12,
-                          plotOutput("word_cloud")
-                          )
-                      # ,
-                      #     fluidRow(column = 3,
-                      #     plotOutput("top_names_female")
-                      #   )
-                      )
+                        mainPanel(
+                          plotOutput("map_plot"),
+                          tableOutput("map_data")
+                        )
+                      )           
              ) 
   )
+)
 )

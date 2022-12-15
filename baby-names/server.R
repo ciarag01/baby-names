@@ -134,27 +134,7 @@ shinyServer(function(input, output) {
      summarise(n = sum(n)) %>% 
      ungroup()
   })
-  
-  # output$top_names_male <- renderPlot({
-  #   
-  #   ggplot(names_by_state() %>% filter(sex == "M"), 
-  #          aes(label = name, size = n, colour = sex)) +
-  #     geom_text_wordcloud() +
-  #     scale_size_area(max_size = 40) +
-  #     theme_minimal()
-  # 
-  # })
-  # 
-  # output$top_names_female <- renderPlot({
-  #   
-  #   ggplot(names_by_state() %>% filter(sex == "F"), 
-  #          aes(label = name, size = n, colour = sex)) +
-  #     geom_text_wordcloud() +
-  #     scale_size_area(max_size = 40) +
-  #     theme_minimal()
-  #   
-  # })
- 
+
  output$word_cloud <- renderPlot({
 
    ggplot(names_by_state(),
@@ -164,5 +144,44 @@ shinyServer(function(input, output) {
      theme_minimal()
 
  })
+ 
+ names_by_state_map <- reactive ({
+   
+   state %>% 
+     filter(year == input$map_year) %>% 
+     filter(sex == input$map_sex) 
+   
+ })
+ 
+ output$map_plot <- renderPlot({
+   
+   ggplot(data=names_by_state_map(), aes(x=long, y=lat, fill = region,
+                          label = name)) + 
+     geom_polygon(color = "white") + 
+     guides(fill=FALSE) + 
+     theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+           axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + 
+     ggtitle('U.S. Map with States') + 
+     coord_fixed(1.3) +
+     geom_text(aes(x = centre_long, y = centre_lat, label = name),
+               size = 3)
+
+ })
+ 
+ map_table <- reactive({
+   map_data %>% 
+     filter(year == input$map_year) %>% 
+     filter(sex == input$map_sex) %>% 
+     group_by(name) %>% 
+     summarise(no_babies = sum(tot)) %>% 
+     ungroup() %>% 
+     arrange(desc(no_babies)) %>% 
+     mutate(perc = round_half_up(no_babies/sum(no_babies), 3)*100)
+ })
+ 
+ output$map_data <- renderTable({
+   map_table()
+ })
   
 })
+
